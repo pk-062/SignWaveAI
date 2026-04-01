@@ -1,26 +1,129 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-primary: #0EA5E9; /* Sky Blue */
+  --color-accent: #38BDF8; /* Lighter Sky Blue */
+  --color-background: #020617; /* Deep midnight */
+  --color-foreground: #f8fafc;
+  --color-card: #0f172a;
+  --color-border: #1e293b;
+  
+  --font-serif: "Playfair Display", serif;
+  --font-sans: "Inter", "Geist Sans", system-ui, sans-serif;
+  
+  --radius-lg: 1.5rem;
+  --radius-md: 1rem;
+  --radius-sm: 0.5rem;
+
+  --animate-pulse: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-size: 13px;
+    letter-spacing: -0.01em;
+    overflow-x: hidden;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* --- High-End Mesh Gradient Background --- */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 0% 0%, rgba(14, 165, 233, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 1) 0%, transparent 100%);
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* --- Professional Typography --- */
+.text-outline {
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.1);
+  color: transparent;
+}
+
+.tracking-tightest {
+  letter-spacing: -0.05em;
+}
+
+/* --- Advanced Glassmorphism --- */
+.glass-card {
+  background: rgba(15, 23, 42, 0.3);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.05);
+  transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.glass-card:hover {
+  background: rgba(15, 23, 42, 0.45);
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  box-shadow: 0 0 40px rgba(14, 165, 233, 0.1);
+}
+
+.text-headline {
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, #fff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.pill-badge {
+  padding: 0.35rem 1.25rem;
+  border-radius: 9999px;
+  background: rgba(14, 165, 233, 0.05);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  color: #38BDF8;
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  font-size: 8px;
+  box-shadow: 0 0 15px rgba(14, 165, 233, 0.1);
+}
+
+.skill-tag {
+  padding: 0.35rem 0.85rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(248, 250, 252, 0.6);
+  transition: all 0.3s ease;
+}
+
+.skill-tag:hover {
+  background: rgba(14, 165, 233, 0.1);
+  color: #38BDF8;
+  border-color: rgba(14, 165, 233, 0.2);
+}
+
+/* --- Animated UI Elements --- */
+@keyframes mesh-drift {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+
+.mesh-gradient {
+  background-size: 200% 200%;
+  animation: mesh-drift 20s ease infinite;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
