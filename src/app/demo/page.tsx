@@ -1,264 +1,257 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { TranslationEngine } from "@/components/demo/TranslationEngine";
-import { VoiceToText, TextToVoice } from "@/components/demo/SpeechUtils";
 import { 
   Camera, 
   Square, 
-  RefreshCcw, 
   Terminal, 
   Cpu, 
-  Waves,
-  History,
   Trash2,
   Activity,
-  MessageSquare,
-  Type
+  ChevronRight,
+  ShieldCheck,
+  Zap,
+  Maximize2,
+  Minimize2,
+  Settings,
+  LayoutGrid
 } from "lucide-react";
 
-interface HistoryItem {
+interface ConsoleEntry {
   id: string;
   word: string;
-  time: string;
+  confidence: number;
+  timestamp: string;
 }
 
 export default function DemoPage() {
   const [isRecording, setIsRecording] = useState(false);
-  const [detectedWord, setDetectedWord] = useState("");
-  const [currentSentence, setCurrentSentence] = useState<string[]>([]);
+  const [translationMode, setTranslationMode] = useState<"alphabet" | "phrases">("alphabet");
+  const [consoleLogs, setConsoleLogs] = useState<ConsoleEntry[]>([]);
   const [confidence, setConfidence] = useState(0);
-  const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [inputText, setInputText] = useState("");
+  const [mounted, setMounted] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  
+  const consoleEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      consoleEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [consoleLogs, mounted]);
 
   const handleDetection = useCallback((word: string, conf: number) => {
-    setDetectedWord(word);
     setConfidence(conf);
     
-    // 1. Autonomous Audio Synthesis
     if (typeof window !== "undefined") {
       const utterance = new SpeechSynthesisUtterance(word);
-      utterance.rate = 1.1; // Slightly faster for professional feel
-      utterance.pitch = 1;
-      window.speechSynthesis.cancel(); // Interrupt current speech
+      utterance.rate = 1.1; 
+      window.speechSynthesis.cancel();
       window.speechSynthesis.speak(utterance);
     }
 
-    // 2. Add to Sentence Builder
-    setCurrentSentence(prev => {
-      const lastWord = prev[prev.length - 1];
-      if (lastWord !== word) {
-        return [...prev, word].slice(-8); // Keep last 8 words
-      }
-      return prev;
-    });
-
-    // 3. Add to unique history log
-    setHistory(prev => {
-      const newItem = { 
-        id: Math.random().toString(36).substr(2, 9) + Date.now(), 
-        word, 
-        time: new Date().toLocaleTimeString() 
-      };
+    setConsoleLogs(prev => {
+      const lastEntry = prev[prev.length - 1];
+      if (lastEntry?.word === word) return prev;
       
-      if (prev.length === 0 || prev[0].word !== word) {
-        return [newItem, ...prev].slice(0, 50);
-      }
-      return prev;
+      const newEntry = {
+        id: Math.random().toString(36).substr(2, 9),
+        word,
+        confidence: conf,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      };
+      return [...prev, newEntry].slice(-20); // Keep it small and concise
     });
-  }, []);
+  }, [mounted]);
 
-  const clearHistory = () => {
-    setHistory([]);
-    setCurrentSentence([]);
-    setDetectedWord("");
-  };
+  const toggleFullscreen = () => setIsFullscreen(!isFullscreen);
 
-  const clearSentence = () => {
-    setCurrentSentence([]);
-    setDetectedWord("");
-  };
+  if (!mounted) return (
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+       <div className="w-12 h-12 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
   return (
-    <main className="min-h-screen bg-background">
-      <Navbar />
+    <main className={`min-h-screen bg-background selection:bg-primary/20 ${isFullscreen ? "overflow-hidden" : "overflow-x-hidden"}`}>
+      {!isFullscreen && <Navbar />}
       
-      <div className="pt-32 pb-20 max-w-7xl mx-auto px-6">
-        {/* Page Header */}
-        <div className="mb-12 flex justify-between items-end">
-           <div>
-              <div className="flex items-center gap-2 mb-4">
-                 <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                    <Terminal className="w-4 h-4" />
-                 </div>
-                 <span className="text-[9px] font-bold uppercase tracking-[0.4em] text-primary">Neural Terminal v3.2</span>
-              </div>
-              <h1 className="text-3xl font-black tracking-tightest mb-4">Intelligence <span className="text-outline">Console</span></h1>
-              <p className="text-[12px] font-medium text-foreground/40 max-w-xl leading-relaxed">
-                Experience high-frequency sign-to-sentence translation with 99.4% confidence. 
-                Our neural framework converts complex skeletal data into professional linguistic output.
-              </p>
-           </div>
-           
-           <div className="flex gap-3">
-              <div className="hidden lg:flex flex-col items-end">
-                 <span className="text-[9px] font-bold text-foreground/20 uppercase tracking-[0.2em]">Framework State</span>
-                 <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${isRecording ? "bg-primary animate-pulse" : "bg-white/10"}`} />
-                    <span className="text-[11px] font-black uppercase">{isRecording ? "Online & Synchronizing" : "System Standby"}</span>
-                 </div>
-              </div>
-           </div>
-        </div>
+      <div className={`${isFullscreen ? "p-0" : "pt-32 pb-20 max-w-[1200px] mx-auto px-4 md:px-8"}`}>
+        
+        {/* Header - Hidden in Fullscreen */}
+        {!isFullscreen && (
+          <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="flex items-center gap-5">
+               <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 shadow-2xl">
+                  <Terminal className="w-6 h-6 text-primary" />
+               </div>
+               <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary">ASL Standard v6.0</span>
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                  </div>
+                  <h1 className="text-3xl md:text-5xl font-black tracking-tightest">
+                    Operational <span className="text-primary italic">Terminal</span>
+                  </h1>
+               </div>
+            </div>
+            
+            <div className="flex items-center gap-4">
+               <div className="px-4 py-2 bg-white/5 rounded-2xl border border-white/10 flex items-center gap-3">
+                  <Zap className="w-3 h-3 text-primary" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-foreground/40">Neural Link Active</span>
+               </div>
+               <div className="px-4 py-2 bg-white/5 rounded-2xl border border-white/10 flex items-center gap-3">
+                  <ShieldCheck className="w-3 h-3 text-emerald-500" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-foreground/40">Auth Verified</span>
+               </div>
+            </div>
+          </header>
+        )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-           {/* Left: AI/Camera Feed */}
-           <div className="lg:col-span-8 space-y-6">
-              <div className="relative aspect-video rounded-[32px] overflow-hidden glass-card p-1 shadow-2xl">
-                 <div className="relative h-full w-full rounded-[28px] overflow-hidden">
-                    <TranslationEngine 
-                      isRecording={isRecording} 
-                      onDetection={handleDetection}
-                    />
-                    
-                    {/* Overlay Controls */}
-                    <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-30 flex gap-4">
-                       {!isRecording ? (
-                          <button 
-                            onClick={() => setIsRecording(true)}
-                            className="px-10 py-4 rounded-full bg-primary text-white font-black text-[11px] uppercase tracking-[0.2em] shadow-[0_0_40px_rgba(14,165,233,0.4)] hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
-                          >
-                             <Camera className="w-4 h-4" /> Initialize Engine
-                          </button>
-                       ) : (
-                          <button 
-                            onClick={() => setIsRecording(false)}
-                            className="px-10 py-4 rounded-full bg-red-500 text-white font-black text-[11px] uppercase tracking-[0.2em] shadow-[0_0_40px_rgba(239,68,68,0.4)] hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
-                          >
-                             <Square className="w-4 h-4" /> Shutdown Core
-                          </button>
-                       )}
-                    </div>
+        {/* PERFECT ALIGNMENT ENGINE STACK */}
+        <div className={`flex flex-col gap-8 transition-all duration-700 ${isFullscreen ? "h-screen bg-black" : ""}`}>
+          
+          {/* VISION CORE (Main Monitor) */}
+          <section className={`relative transition-all duration-700 ${isFullscreen ? "flex-1 rounded-none shadow-none" : "h-[450px] md:h-[650px] rounded-[45px] shadow-3xl border border-white/5 group"} overflow-hidden bg-slate-950`}>
+             <TranslationEngine 
+               isRecording={isRecording} 
+               onDetection={handleDetection}
+               mode={translationMode}
+               isFullscreen={isFullscreen}
+             />
+             
+             {/* Controls Overlay */}
+             <div className="absolute top-8 left-8 right-8 flex items-start justify-between z-30 pointer-events-none">
+                <div className="flex flex-col gap-4 pointer-events-auto">
+                   <div className="flex p-1 bg-black/40 backdrop-blur-3xl rounded-2xl border border-white/10 shadow-2xl">
+                      <button 
+                        onClick={() => setTranslationMode("alphabet")}
+                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${translationMode === "alphabet" ? "bg-primary text-white shadow-lg" : "text-foreground/40 hover:text-foreground/60"}`}
+                      >
+                        A-Z Manual
+                      </button>
+                      <button 
+                        onClick={() => setTranslationMode("phrases")}
+                        className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${translationMode === "phrases" ? "bg-primary text-white shadow-lg" : "text-foreground/40 hover:text-foreground/60"}`}
+                      >
+                        ASL Lexicon
+                      </button>
+                   </div>
+                </div>
+                
+                <button 
+                  onClick={toggleFullscreen}
+                  className="p-4 bg-black/40 backdrop-blur-3xl rounded-2xl border border-white/10 text-primary pointer-events-auto hover:bg-primary hover:text-white transition-all shadow-2xl group/fs"
+                >
+                  {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5 group-hover/fs:scale-110 transition-transform" />}
+                </button>
+             </div>
 
-                    {/* Stats Overlay */}
-                    <div className="absolute top-6 right-6 z-30 flex flex-col gap-3">
-                       <div className="px-4 py-2 bg-slate-900/60 backdrop-blur-xl rounded-xl border border-white/5">
-                          <span className="text-[8px] font-black text-foreground/30 block pb-1 tracking-[0.1em]">CONFIDENCE</span>
-                          <span className="text-primary font-black text-[12px]">{Math.round(confidence * 100)}%</span>
-                       </div>
-                    </div>
-                 </div>
-              </div>
-
-              {/* Real-time Sentence Builder Banner */}
-              <div className="w-full h-32 bg-primary/5 border border-primary/20 rounded-[32px] flex items-center justify-between px-10 glass-card">
-                 <div className="flex flex-col gap-2 flex-1">
-                    <div className="flex items-center gap-2">
-                       <MessageSquare className="w-3 h-3 text-primary" />
-                       <span className="text-[9px] font-bold text-primary uppercase tracking-[0.3em]">Linguistic Output Buffer</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                       {currentSentence.length > 0 ? (
-                         currentSentence.map((word, i) => (
-                           <motion.span 
-                             key={`${word}-${i}`} 
-                             initial={{ opacity: 0, x: -5 }}
-                             animate={{ opacity: 1, x: 0 }}
-                             className="text-2xl font-black tracking-tight"
-                           >
-                             {word}{i === currentSentence.length - 1 ? "" : " "}
-                           </motion.span>
-                         ))
-                       ) : (
-                         <span className="text-xl font-bold text-foreground/10 uppercase tracking-widest italic">Awaiting neural input...</span>
-                       )}
-                    </div>
-                 </div>
-                 <div className="flex gap-4 items-center">
-                    <TextToVoice text={currentSentence.join(" ")} />
-                    <button 
-                      onClick={clearSentence} 
-                      className="p-3.5 rounded-2xl bg-white/5 border border-white/5 text-foreground/20 hover:text-primary transition-all hover:bg-white/10"
+             <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
+                <AnimatePresence mode="wait">
+                  {!isRecording ? (
+                    <motion.button 
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -20, opacity: 0 }}
+                      onClick={() => setIsRecording(true)}
+                      className="px-12 py-5 rounded-[28px] bg-primary text-white font-black text-[12px] uppercase tracking-[0.4em] shadow-[0_20px_50px_rgba(14,165,233,0.3)] hover:scale-105 active:scale-95 transition-all flex items-center gap-4 group/btn"
                     >
-                       <RefreshCcw className="w-5 h-5" />
-                    </button>
-                 </div>
-              </div>
-           </div>
+                       <Camera className="w-5 h-5 group-hover/btn:rotate-12 transition-transform" /> Start Operational Link
+                    </motion.button>
+                  ) : (
+                    <motion.button 
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      exit={{ y: -20, opacity: 0 }}
+                      onClick={() => setIsRecording(false)}
+                      className="px-12 py-5 rounded-[28px] bg-red-600 text-white font-black text-[12px] uppercase tracking-[0.4em] shadow-[0_20px_50px_rgba(220,38,38,0.3)] hover:scale-105 active:scale-95 transition-all flex items-center gap-4 group/stop"
+                    >
+                       <Square className="w-5 h-5 fill-white group-stop:animate-pulse" /> Shutdown Vision
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+             </div>
 
-           {/* Right: Sidebar Utilities */}
-           <div className="lg:col-span-4 space-y-6">
-              {/* History Panel */}
-              <div className="glass-card rounded-[32px] p-8 h-[450px] flex flex-col border-white/5">
-                 <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-2">
-                       <History className="w-4 h-4 text-primary" />
-                       <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-foreground/40">Translation Log</span>
-                    </div>
-                    <button onClick={clearHistory} className="text-foreground/10 hover:text-red-500 transition-colors">
-                       <Trash2 className="w-4 h-4" />
-                    </button>
-                 </div>
-                 <div className="flex-1 overflow-y-auto no-scrollbar space-y-3 pr-2">
-                    <AnimatePresence>
-                       {history.length > 0 ? history.map((item) => (
+             {/* Diagnostics Ghost Overlay */}
+             <div className="absolute right-8 bottom-10 z-30 hidden md:block">
+                <div className="px-6 py-4 bg-black/40 backdrop-blur-3xl rounded-[30px] border border-white/5 flex flex-col items-end shadow-2xl">
+                   <div className="flex items-center gap-4">
+                      <div className="w-20 h-1.5 bg-white/5 rounded-full overflow-hidden">
                          <motion.div 
-                           key={item.id}
-                           initial={{ opacity: 0, x: -5 }}
-                           animate={{ opacity: 1, x: 0 }}
-                           className="flex justify-between items-center p-4 rounded-2xl bg-white/[0.02] border border-white/5 group hover:border-primary/20 transition-all duration-500"
-                         >
-                            <span className="text-[11px] font-black text-foreground/60 group-hover:text-primary transition-colors uppercase tracking-tight">{item.word}</span>
-                            <span className="text-[9px] font-mono text-foreground/10 font-bold">{item.time}</span>
-                         </motion.div>
-                       )) : (
-                         <div className="h-full flex flex-col items-center justify-center opacity-10 text-center">
-                            <Activity className="w-10 h-10 mb-4 animate-pulse" />
-                            <p className="text-[9px] font-black uppercase tracking-[0.4em]">Log Empty</p>
-                         </div>
-                       )}
-                    </AnimatePresence>
-                 </div>
-              </div>
+                           className="h-full bg-primary"
+                           animate={{ width: `${Math.round(confidence * 100)}%` }}
+                         />
+                      </div>
+                      <span className="text-primary font-black text-xl tracking-tighter tabular-nums">{Math.round(confidence * 100)}%</span>
+                   </div>
+                   <span className="text-[8px] font-black text-foreground/20 uppercase tracking-[0.3em] mt-2">Neural Sensitivity Alpha</span>
+                </div>
+             </div>
+          </section>
 
-              {/* Tools Panel */}
-              <div className="glass-card rounded-[32px] p-8 space-y-8 border-white/5">
-                 <div className="flex items-center gap-2">
-                    <Cpu className="w-4 h-4 text-primary" />
-                    <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-foreground/40">Transcription Core</span>
-                 </div>
-                 
-                 <div className="space-y-6">
-                    <div className="space-y-3">
-                       <label className="text-[9px] font-bold text-foreground/20 uppercase tracking-widest pl-1">Speech Transcription</label>
-                       <VoiceToText onTextChange={(text) => setInputText(text)} />
-                    </div>
-                    
-                    <div className="space-y-3 text-right">
-                       <label className="text-[9px] font-bold text-foreground/20 uppercase tracking-widest pr-1">Text-to-Linguistic Synthesis</label>
-                       <div className="relative group">
-                          <input 
-                            type="text" 
-                            value={inputText}
-                            onChange={(e) => setInputText(e.target.value)}
-                            placeholder="Input framework query..."
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-xs font-semibold focus:border-primary outline-none transition-all pr-14 placeholder:text-foreground/10 placeholder:uppercase placeholder:text-[9px] placeholder:tracking-widest"
-                          />
-                          <div className="absolute right-2 top-1.5 pt-0.5 scale-75">
-                             <TextToVoice text={inputText} />
-                          </div>
-                       </div>
-                    </div>
-                 </div>
-              </div>
-           </div>
+          {/* NEURAL CONSOLE (Small Solid Block Below) */}
+          <section className={`transition-all duration-700 ${isFullscreen ? "bg-[#050505] border-t border-white/5 h-[200px]" : "bg-slate-900/40 backdrop-blur-3xl rounded-[40px] border border-white/10 h-[220px] shadow-2xl"} p-8 overflow-hidden flex flex-col group relative`}>
+             <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+                <Cpu className="w-20 h-20" />
+             </div>
+             
+             <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                   <div className="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(14,165,233,1)]" />
+                   <h3 className="text-xs font-black uppercase tracking-[0.3em] text-foreground/40">Real-time <span className="text-primary">ASL Console</span></h3>
+                </div>
+                <button 
+                  onClick={() => setConsoleLogs([])}
+                  className="p-2 bg-white/5 rounded-xl border border-white/10 text-foreground/20 hover:text-red-500 hover:border-red-500/20 transition-all transition-transform active:scale-90"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+             </div>
+
+             <div className="flex-1 overflow-y-auto no-scrollbar font-mono space-y-3 relative z-10">
+                {consoleLogs.length > 0 ? consoleLogs.map((log) => (
+                  <motion.div 
+                    key={log.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex items-center gap-3 group/line hover:bg-white/5 p-1 rounded-lg transition-colors"
+                  >
+                     <span className="text-[10px] font-bold text-foreground/10 tabular-nums">[{log.timestamp}]</span>
+                     <ChevronRight className="w-3 h-3 text-primary/40 group-hover/line:text-primary transition-colors" />
+                     <span className="text-lg font-black text-white tracking-widest uppercase transition-colors group-hover/line:text-primary">
+                        {log.word}
+                     </span>
+                     <span className="ml-auto text-[8px] font-black text-foreground/10 group-hover/line:text-primary/20 transition-all">
+                        {Math.round(log.confidence * 100)}% PRECISION_SENS
+                     </span>
+                  </motion.div>
+                )) : (
+                  <div className="h-full flex items-center justify-center gap-3 opacity-10">
+                     <Activity className="w-6 h-6 animate-pulse" />
+                     <span className="text-[10px] font-black uppercase tracking-[0.5em]">System Monitoring ASL link...</span>
+                  </div>
+                )}
+                <div ref={consoleEndRef} />
+             </div>
+
+             <div className="absolute bottom-4 right-8 text-[9px] font-black text-foreground/5 uppercase tracking-[1em]">
+                SignWave Terminal
+             </div>
+          </section>
         </div>
       </div>
 
-      <Footer />
+      {!isFullscreen && <Footer />}
     </main>
   );
 }

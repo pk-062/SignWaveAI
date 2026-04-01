@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SignWave AI - Breaking Communication Barriers",
-  description: "A futuristic AI accessibility platform converting sign language, text, and speech.",
+  title: "Home",
+  description: "SignWave AI - Professional Neural Translation Framework",
 };
 
 export default function RootLayout({

@@ -1,24 +1,22 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { motion, useMotionValue, useSpring, AnimatePresence } from "framer-motion";
+import { motion, useSpring, useMotionValue } from "framer-motion";
 
 export const CustomCursor: React.FC = () => {
   const [isHovering, setIsHovering] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
-  const [clickCount, setClickCount] = useState(0);
+  
+  const mouseX = useMotionValue(-100);
+  const mouseY = useMotionValue(-100);
 
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  // Smooth springs for the "Liquid" movement
-  const springConfig = { damping: 25, stiffness: 200, mass: 0.8 };
+  const springConfig = { damping: 30, stiffness: 200, mass: 0.5 };
   const cursorX = useSpring(mouseX, springConfig);
   const cursorY = useSpring(mouseY, springConfig);
 
-  // Ghost trail for the "Liquid Metal" look
-  const trailX = useSpring(mouseX, { damping: 50, stiffness: 100 });
-  const trailY = useSpring(mouseY, { damping: 50, stiffness: 100 });
+  // Soft trail for the "Liquid" feel
+  const trailX = useSpring(mouseX, { damping: 40, stiffness: 100 });
+  const trailY = useSpring(mouseY, { damping: 40, stiffness: 100 });
 
   useEffect(() => {
     const moveMouse = (e: MouseEvent) => {
@@ -27,151 +25,90 @@ export const CustomCursor: React.FC = () => {
       if (!isVisible) setIsVisible(true);
     };
 
-    const handleHoverStart = () => setIsHovering(true);
-    const handleHoverEnd = () => setIsHovering(false);
-    
-    const handleClick = () => {
-      setClickCount(prev => prev + 1);
-      setTimeout(() => setClickCount(prev => prev - 1), 1000);
+    const handleHover = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const isInteractive = !!target.closest('button, a, input, textarea, .glass-card, [role="button"]');
+      setIsHovering(isInteractive);
     };
 
     window.addEventListener("mousemove", moveMouse);
-    window.addEventListener("mousedown", handleClick);
-
-    const updateInteractiveElements = () => {
-      const interactiveElements = document.querySelectorAll(
-        'button, a, input, textarea, [role="button"], .interactive'
-      );
-
-      interactiveElements.forEach((el) => {
-        el.addEventListener("mouseenter", handleHoverStart);
-        el.addEventListener("mouseleave", handleHoverEnd);
-      });
-    };
-
-    updateInteractiveElements();
-    const interval = setInterval(updateInteractiveElements, 2000);
+    window.addEventListener("mouseover", handleHover);
 
     return () => {
       window.removeEventListener("mousemove", moveMouse);
-      window.removeEventListener("mousedown", handleClick);
-      clearInterval(interval);
+      window.removeEventListener("mouseover", handleHover);
     };
   }, [mouseX, mouseY, isVisible]);
 
   if (!isVisible) return null;
 
   return (
-    <div className="custom-cursor pointer-events-none fixed inset-0 z-[9999] mix-blend-screen">
-      {/* 1. The Liquid Base - High Refraction Blur */}
+    <div className="fixed inset-0 pointer-events-none z-[9999] hidden md:block select-none overflow-hidden">
+      {/* 1. Large Fluid Glow - The "Aura" */}
       <motion.div
-        className="fixed h-12 w-12 rounded-full bg-primary/20 blur-xl"
         style={{
-          x: trailX,
-          y: trailY,
-          translateX: "-50%",
-          translateY: "-50%",
-          scale: isHovering ? 2.5 : 1.5,
-          opacity: 0.5,
+          translateX: trailX,
+          translateY: trailY,
+          x: "-50%",
+          y: "-50%",
         }}
-      />
-
-      {/* 2. Neural Nodes - Orbiting satellites */}
-      {[0, 1, 2].map((i) => (
-        <motion.div
-          key={i}
-          className="fixed w-1 h-1 rounded-full bg-primary shadow-[0_0_8px_rgba(14,165,233,0.8)]"
-          style={{
-            x: cursorX,
-            y: cursorY,
-            translateX: "-50%",
-            translateY: "-50%",
-          }}
-          animate={{
-            x: [
-              Math.cos((i * 120 * Math.PI) / 180) * (isHovering ? 30 : 20),
-              Math.cos(((i * 120 + 360) * Math.PI) / 180) * (isHovering ? 30 : 20),
-            ],
-            y: [
-              Math.sin((i * 120 * Math.PI) / 180) * (isHovering ? 30 : 20),
-              Math.sin(((i * 120 + 360) * Math.PI) / 180) * (isHovering ? 30 : 20),
-            ],
-            transition: { repeat: Infinity, duration: 4, ease: "linear" }
-          }}
-        />
-      ))}
-
-      {/* 3. The Liquid Core - SVG Morphing Sphere */}
-      <motion.div
-        className="fixed overflow-visible"
-        style={{
-          x: cursorX,
-          y: cursorY,
-          translateX: "-50%",
-          translateY: "-50%",
+        animate={{
+          scale: isHovering ? 2.5 : 1,
+          opacity: isHovering ? 0.25 : 0.1,
         }}
-      >
-        <svg width="100" height="100" viewBox="0 0 100 100" className="opacity-80">
-          <motion.path
-            d="M50 20 Q70 20 80 50 Q70 80 50 80 Q30 80 20 50 Q30 20 50 20"
-            fill="rgba(14, 165, 233, 0.6)"
-            stroke="rgba(14, 165, 233, 1)"
-            strokeWidth="0.5"
-            animate={{
-              d: isHovering 
-                ? "M50 10 Q90 10 90 50 Q90 90 50 90 Q10 90 10 50 Q10 10 50 10" // Square-ish morph
-                : "M50 25 Q75 25 75 50 Q75 75 50 75 Q25 75 25 50 Q25 25 50 25", // Circle morph
-            }}
-            transition={{ type: "spring", stiffness: 100, damping: 10 }}
-          />
-        </svg>
-      </motion.div>
-
-      {/* 4. Connection Lines - Dynamic SVG Grid */}
-      <svg className="fixed top-0 left-0 w-full h-full opacity-20 pointer-events-none">
-         <motion.circle
-            cx={cursorX}
-            cy={cursorY}
-            r={isHovering ? 40 : 25}
-            fill="none"
-            stroke="var(--color-primary)"
-            strokeWidth="0.5"
-            strokeDasharray="4 4"
-            animate={{ rotate: 360 }}
-            transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
-         />
-      </svg>
-
-      {/* 5. Focal Center - The Sharp Point */}
-      <motion.div
-        className="fixed h-2 w-2 rounded-full bg-white shadow-[0_0_15px_rgba(255,255,255,1)]"
-        style={{
-          x: mouseX,
-          y: mouseY,
-          translateX: "-50%",
-          translateY: "-50%",
-          scale: isHovering ? 0.4 : 1,
-        }}
+        transition={{ type: "spring", stiffness: 150, damping: 20 }}
+        className="absolute w-32 h-32 bg-primary rounded-full blur-[60px]"
       />
       
-      {/* Click Ripples */}
-      <AnimatePresence>
-        {clickCount > 0 && (
-          <motion.div
-            key="ripple"
-            initial={{ scale: 0.1, opacity: 1 }}
-            animate={{ scale: 3, opacity: 0 }}
-            exit={{ opacity: 0 }}
-            className="fixed h-10 w-10 border border-primary/40 rounded-full"
-            style={{
-              x: mouseX,
-              y: mouseY,
-              translateX: "-50%",
-              translateY: "-50%",
-            }}
-          />
-        )}
-      </AnimatePresence>
+      {/* 2. Secondary Neural Glow */}
+      <motion.div
+        style={{
+          translateX: cursorX,
+          translateY: cursorY,
+          x: "-50%",
+          y: "-50%",
+        }}
+        animate={{
+          scale: isHovering ? 1.8 : 1,
+          opacity: isHovering ? 0.4 : 0.2,
+        }}
+        className="absolute w-12 h-12 bg-primary/40 rounded-full blur-2xl"
+      />
+
+      {/* 3. The Precision Core - Inner Ring */}
+      <motion.div
+        style={{
+          translateX: cursorX,
+          translateY: cursorY,
+          x: "-50%",
+          y: "-50%",
+        }}
+        animate={{
+          scale: isHovering ? 1.4 : 1,
+          rotate: isHovering ? 45 : 0,
+          borderColor: isHovering ? "rgba(14, 165, 233, 1)" : "rgba(14, 165, 233, 0.3)",
+        }}
+        className="absolute w-6 h-6 border-[0.5px] border-primary/30 rounded-full flex items-center justify-center"
+      >
+        <motion.div 
+           animate={{ scale: isHovering ? 0.2 : 1 }}
+           className="w-1 h-1 bg-primary rounded-full shadow-[0_0_12px_2px_rgba(14,165,233,0.6)]" 
+        />
+      </motion.div>
+
+      {/* 4. Focal Dot - Sharp Point */}
+      <motion.div
+        style={{
+          translateX: mouseX,
+          translateY: mouseY,
+          x: "-50%",
+          y: "-50%",
+        }}
+        animate={{
+          scale: isHovering ? 0 : 1,
+        }}
+        className="absolute w-1 h-1 bg-white rounded-full mix-blend-difference"
+      />
     </div>
   );
 };
