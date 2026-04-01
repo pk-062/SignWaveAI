@@ -28,7 +28,7 @@ const team = [
     icon: <Activity className="w-8 h-8 text-primary" />,
   },
   {
-    name: "Deviprassad S G",
+    name: "Deviprasaad S G",
     role: "Backend & Deployment",
     bio: "Managed the backend structure, APIs, deployment flow, and performance optimization to ensure SignWave AI remains scalable, reliable, and easy to maintain.",
     skills: ["Backend", "API", "Deployment"],
