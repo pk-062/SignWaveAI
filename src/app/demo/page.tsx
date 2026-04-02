@@ -36,17 +36,11 @@ export default function DemoPage() {
   const [mounted, setMounted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   
-  const consoleEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (mounted) {
-      consoleEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [consoleLogs, mounted]);
 
   const handleDetection = useCallback((word: string, conf: number) => {
     setConfidence(conf);
@@ -241,7 +235,6 @@ export default function DemoPage() {
                      <span className="text-[10px] font-black uppercase tracking-[0.5em]">System Monitoring ASL link...</span>
                   </div>
                 )}
-                <div ref={consoleEndRef} />
              </div>
 
              <div className="absolute bottom-4 right-8 text-[9px] font-black text-foreground/5 uppercase tracking-[1em]">
